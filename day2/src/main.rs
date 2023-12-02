@@ -13,21 +13,34 @@ fn main() {
 
     let games = parse_records(input);
 
-    let answer: usize = games
+    let answer: i32 = games
         .iter()
-        .filter(|g| {
-            g.observations.iter().all(|o| {
-                o.cubes.iter().all(|c| match *c {
-                    Cube::Red(count) => count <= 12,
-                    Cube::Green(count) => count <= 13,
-                    Cube::Blue(count) => count <= 14,
-                })
-            })
-        })
-        .map(|g| g.id)
-        .sum();
+        .map(|g| {
+            let max_count = g.observations.iter().fold(CubeCounts::default(), |max, o| {
+                let cube_counts = o.cubes.iter().fold(CubeCounts::default(), |mut counts, c| {
+                    match c {
+                        Cube::Red(count) => counts.red += count,
+                        Cube::Green(count) => counts.green += count,
+                        Cube::Blue(count) => counts.blue += count,
+                    }
+                    counts
+                });
+
+                CubeCounts { red: max.red.max(cube_counts.red), green: max.green.max(cube_counts.green), blue: max.blue.max(cube_counts.blue) }
+                
+            });
+
+            max_count.red * max_count.green * max_count.blue
+        }).sum();
 
     dbg!(answer);
+}
+
+#[derive(Default)]
+struct CubeCounts {
+    red: i32,
+    green: i32,
+    blue: i32,
 }
 
 #[derive(Debug)]
