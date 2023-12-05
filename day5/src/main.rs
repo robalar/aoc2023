@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use nom::{
     bytes::complete::tag,
     character::complete::one_of,
@@ -9,20 +11,25 @@ use nom::{
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 fn main() {
-    let input = include_str!("input.txt");
+    let input = include_str!("example.txt");
 
     let almanac = parse_input(input);
 
     let maps = almanac.maps();
+
+    dbg!(&almanac.seeds);
 
     let answer = almanac
         .seeds
         .clone()
         .into_par_iter()
         .map(|sr| {
-            (sr.start..sr.start + sr.len)
-                .into_par_iter()
-                .map(|s| maps.into_iter().fold(s, |acc, map| map.get(acc)))
+            sr.into_par_iter()
+                .map(|s| {
+                    maps.into_iter().fold(s, |acc, maps| {
+                        maps.iter().find_map(|r| r.get(acc)).unwrap_or(acc)
+                    })
+                })
                 .min()
                 .expect("no minimum for range")
         })
@@ -34,18 +41,18 @@ fn main() {
 
 #[derive(Debug)]
 struct Almanac {
-    seeds: Vec<SeedRange>,
-    seed_to_soil: RangeMap,
-    soil_to_fertilizer: RangeMap,
-    fertilizer_to_water: RangeMap,
-    water_to_light: RangeMap,
-    light_to_temperature: RangeMap,
-    temperature_to_humidity: RangeMap,
-    humidity_to_location: RangeMap,
+    seeds: Vec<Range<usize>>,
+    seed_to_soil: Vec<RangeMap>,
+    soil_to_fertilizer: Vec<RangeMap>,
+    fertilizer_to_water: Vec<RangeMap>,
+    water_to_light: Vec<RangeMap>,
+    light_to_temperature: Vec<RangeMap>,
+    temperature_to_humidity: Vec<RangeMap>,
+    humidity_to_location: Vec<RangeMap>,
 }
 
 impl Almanac {
-    fn maps(&self) -> [&RangeMap; 7] {
+    fn maps(&self) -> [&Vec<RangeMap>; 7] {
         [
             &self.seed_to_soil,
             &self.soil_to_fertilizer,
@@ -60,37 +67,19 @@ impl Almanac {
 
 #[derive(Debug)]
 struct RangeMap {
-    ranges: Vec<Range>,
+    source: Range<usize>,
+    dest: Range<usize>,
 }
 
 impl RangeMap {
-    fn get(&self, v: usize) -> usize {
-        self.ranges.iter().find_map(|r| r.get(v)).unwrap_or(v)
-    }
-}
-
-#[derive(Debug)]
-struct Range {
-    source_start: usize,
-    dest_start: usize,
-    len: usize,
-}
-
-impl Range {
     fn get(&self, v: usize) -> Option<usize> {
-        if v >= self.source_start && v < self.source_start + self.len {
-            let dist = v - self.source_start;
-            Some(self.dest_start + dist)
+        if self.source.contains(&v) {
+            let dist = v - self.source.start;
+            Some(self.dest.start + dist)
         } else {
             None
         }
     }
-}
-
-#[derive(Debug, Clone)]
-struct SeedRange {
-    start: usize,
-    len: usize,
 }
 
 fn parse_input(input: &str) -> Almanac {
@@ -134,13 +123,13 @@ fn parse_input(input: &str) -> Almanac {
     }
 }
 
-fn seeds(input: &str) -> IResult<&str, Vec<SeedRange>> {
+fn seeds(input: &str) -> IResult<&str, Vec<Range<usize>>> {
     preceded(tag("seeds: "), separated_list0(tag(" "), seed_range))(input)
 }
 
-fn seed_range(input: &str) -> IResult<&str, SeedRange> {
+fn seed_range(input: &str) -> IResult<&str, Range<usize>> {
     separated_pair(integer, tag(" "), integer)(input)
-        .map(|(s, (start, len))| (s, SeedRange { start, len }))
+        .map(|(s, (start, len))| (s, start..start + len))
 }
 
 fn integer(input: &str) -> IResult<&str, usize> {
@@ -149,13 +138,11 @@ fn integer(input: &str) -> IResult<&str, usize> {
     })(input)
 }
 
-fn range_map(input: &str) -> IResult<&str, RangeMap> {
-    let (input, ranges) = separated_list0(tag("\n"), range)(input)?;
-
-    Ok((input, RangeMap { ranges }))
+fn range_map(input: &str) -> IResult<&str, Vec<RangeMap>> {
+    separated_list0(tag("\n"), range)(input)
 }
 
-fn range(input: &str) -> IResult<&str, Range> {
+fn range(input: &str) -> IResult<&str, RangeMap> {
     let (input, (dest_start, source_start, len)) = tuple((
         terminated(integer, tag(" ")),
         terminated(integer, tag(" ")),
@@ -164,10 +151,9 @@ fn range(input: &str) -> IResult<&str, Range> {
 
     Ok((
         input,
-        Range {
-            source_start,
-            dest_start,
-            len,
+        RangeMap {
+            source: source_start..source_start + len,
+            dest: dest_start..dest_start + len,
         },
     ))
 }
