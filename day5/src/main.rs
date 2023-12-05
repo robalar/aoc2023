@@ -3,7 +3,7 @@ use nom::{
     character::complete::one_of,
     combinator::{map_res, recognize},
     multi::{many1, separated_list0},
-    sequence::{delimited, preceded, terminated, tuple},
+    sequence::{delimited, preceded, separated_pair, terminated, tuple},
     IResult,
 };
 
@@ -18,16 +18,21 @@ fn main() {
         .seeds
         .clone()
         .into_iter()
-        .map(|s| maps.into_iter().fold(s, |acc, map| map.get(acc)))
+        .map(|sr| {
+            (sr.start..sr.start + sr.len)
+                .map(|s| maps.into_iter().fold(s, |acc, map| map.get(acc)))
+                .min()
+                .expect("no minimum for range")
+        })
         .min()
-        .unwrap();
+        .expect("no overall minimum");
 
     dbg!(answer);
 }
 
 #[derive(Debug)]
 struct Almanac {
-    seeds: Vec<usize>,
+    seeds: Vec<SeedRange>,
     seed_to_soil: RangeMap,
     soil_to_fertilizer: RangeMap,
     fertilizer_to_water: RangeMap,
@@ -52,7 +57,6 @@ impl Almanac {
 }
 
 #[derive(Debug)]
-
 struct RangeMap {
     ranges: Vec<Range>,
 }
@@ -79,6 +83,12 @@ impl Range {
             None
         }
     }
+}
+
+#[derive(Debug, Clone)]
+struct SeedRange {
+    start: usize,
+    len: usize,
 }
 
 fn parse_input(input: &str) -> Almanac {
@@ -122,8 +132,13 @@ fn parse_input(input: &str) -> Almanac {
     }
 }
 
-fn seeds(input: &str) -> IResult<&str, Vec<usize>> {
-    preceded(tag("seeds: "), separated_list0(tag(" "), integer))(input)
+fn seeds(input: &str) -> IResult<&str, Vec<SeedRange>> {
+    preceded(tag("seeds: "), separated_list0(tag(" "), seed_range))(input)
+}
+
+fn seed_range(input: &str) -> IResult<&str, SeedRange> {
+    separated_pair(integer, tag(" "), integer)(input)
+        .map(|(s, (start, len))| (s, SeedRange { start, len }))
 }
 
 fn integer(input: &str) -> IResult<&str, usize> {
