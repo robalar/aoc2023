@@ -26,12 +26,16 @@ fn main() {
                     counts
                 });
 
-                CubeCounts { red: max.red.max(cube_counts.red), green: max.green.max(cube_counts.green), blue: max.blue.max(cube_counts.blue) }
-                
+                CubeCounts {
+                    red: max.red.max(cube_counts.red),
+                    green: max.green.max(cube_counts.green),
+                    blue: max.blue.max(cube_counts.blue),
+                }
             });
 
             max_count.red * max_count.green * max_count.blue
-        }).sum();
+        })
+        .sum();
 
     dbg!(answer);
 }
