@@ -6,6 +6,7 @@ use nom::{
     sequence::{delimited, preceded, separated_pair, terminated, tuple},
     IResult,
 };
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 fn main() {
     let input = include_str!("input.txt");
@@ -17,9 +18,10 @@ fn main() {
     let answer = almanac
         .seeds
         .clone()
-        .into_iter()
+        .into_par_iter()
         .map(|sr| {
             (sr.start..sr.start + sr.len)
+                .into_par_iter()
                 .map(|s| maps.into_iter().fold(s, |acc, map| map.get(acc)))
                 .min()
                 .expect("no minimum for range")
