@@ -15,29 +15,57 @@ fn main() {
     let input = include_str!("input.txt");
     let map = Map::from(input);
 
-    let answer = map
-        .directions
-        .iter()
-        .cycle()
-        .scan(("AAA", 0), |(node, count), direction| {
-            if node == &"ZZZ" {
-                return None;
-            }
+    let inital_ghosts = map
+        .network
+        .keys()
+        .filter(|k| k.ends_with("A"))
+        .map(|n| Ghost::new(*n));
 
-            let choices = map.network.get(node).expect("could find node");
-            let next_node = match direction {
-                Direction::Left => choices.0,
-                Direction::Right => choices.1,
-            };
+    let answer = inital_ghosts
+        .map(|ghost| {
+            map.directions
+                .iter()
+                .cycle()
+                .scan((ghost, 0u64), |(ghost, count), direction| {
+                    if ghost.at_terminal_node() {
+                        return None;
+                    }
 
-            *node = next_node;
-            *count += 1;
+                    let choices = map
+                        .network
+                        .get(ghost.current_node)
+                        .expect("could find node");
+                    let next_node = match direction {
+                        Direction::Left => choices.0,
+                        Direction::Right => choices.1,
+                    };
 
-            Some((*node, *count))
+                    ghost.current_node = next_node;
+                    *count += 1;
+
+                    Some(*count)
+                })
+                .last()
+                .unwrap()
         })
-        .last();
+        .fold(1, |acc, x| num::integer::lcm(acc, x));
 
     dbg!(answer);
+}
+
+#[derive(Debug)]
+struct Ghost<'a> {
+    current_node: &'a str,
+}
+
+impl<'a> Ghost<'a> {
+    fn new(current_node: &'a str) -> Self {
+        Ghost { current_node }
+    }
+
+    fn at_terminal_node(&self) -> bool {
+        self.current_node.ends_with("Z")
+    }
 }
 
 #[derive(Clone, Debug)]
