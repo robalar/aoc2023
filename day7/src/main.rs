@@ -30,9 +30,25 @@ enum HandType {
 impl HandType {
     fn from_cards(cards: &[char]) -> HandType {
         let mut card_counts = HashMap::new();
-        cards.iter().for_each(|c| {
+        for c in cards {
             *card_counts.entry(c).or_insert(0) += 1;
-        });
+        }
+
+        if let Some(joker_count) = card_counts.remove(&'J') {
+            let max_no_joker_card = card_counts
+                .iter()
+                .filter(|(label, _)| label != &&&'J')
+                .max_by(|(_, a_count), (_, b_count)| a_count.cmp(b_count))
+                .map(|(label, _)| label);
+
+            if let Some(max_label) = max_no_joker_card {
+                card_counts
+                    .entry(&max_label)
+                    .and_modify(|c| *c += joker_count);
+            } else {
+                card_counts.insert(&'J', joker_count);
+            }
+        }
 
         let mut values = card_counts.values().collect::<Vec<_>>();
         values.sort();
@@ -89,7 +105,7 @@ impl Ord for Hand {
         match self.hand_type.cmp(&other.hand_type) {
             Ordering::Equal => {
                 // If hand types are the same, order by value of card labels
-                let label_values: HashMap<_, _> = "23456789TJQKA"
+                let label_values: HashMap<_, _> = "J23456789TQKA"
                     .chars()
                     .enumerate()
                     .map(|(i, c)| (c, i))
