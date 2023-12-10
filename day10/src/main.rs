@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use itertools::Itertools;
+
 fn main() {
     let input = include_str!("input.txt");
 
@@ -14,8 +16,10 @@ fn main() {
 
     let (mut current_position, mut current_direction) =
         grid.starting_point().expect("could find starting point");
-    let mut step_count = 0;
+    let mut path_points = vec![];
     loop {
+        path_points.push(current_position);
+
         let offset = current_direction.offset();
 
         let next_position = (
@@ -29,9 +33,11 @@ fn main() {
 
         match next_tile {
             Tile::Ground => panic!("Unclosed loop!"),
-            Tile::Starting => break,
+            Tile::Starting => {
+                path_points.push(next_position);
+                break;
+            }
             Tile::Pipe(p) => {
-                step_count += 1;
                 current_position = next_position;
                 current_direction = p
                     .next_direction(&current_direction)
@@ -40,7 +46,15 @@ fn main() {
         }
     }
 
-    dbg!(step_count as f32 / 2f32);
+    // Pick's therorem + Shoelace sum :)
+    let shoelace_sum: i32 = path_points
+        .iter()
+        .tuple_windows()
+        .map(|(a, b)| (a.0 + b.0) as i32 * (a.1 as i32 - b.1 as i32))
+        .sum();
+
+    let answer = (shoelace_sum - path_points.len() as i32 + 4) / 2;
+    dbg!(answer);
 }
 
 #[derive(Debug)]
