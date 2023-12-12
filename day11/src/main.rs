@@ -6,13 +6,16 @@ fn main() {
     let input = include_str!("input.txt");
     let mut univese = Universe::from(input);
     univese.expand();
+    // println!("{}", &univese);
 
     let answer = univese
         .galaxies
         .iter()
         .tuple_combinations()
-        .map(|(a, b)| (a.0 as i32 - b.0 as i32).abs() + (a.1 as i32 - b.1 as i32).abs())
-        .sum::<i32>();
+        .map(|(a, b)| {
+            (a.0 as i64 - b.0 as i64).abs() as u64 + (a.1 as i64 - b.1 as i64).abs() as u64
+        })
+        .sum::<u64>();
 
     dbg!(answer);
 }
@@ -26,6 +29,8 @@ struct Universe {
 
 impl Universe {
     fn expand(&mut self) {
+        let scaling_factor = 999999;
+
         // Find rows without galaxies
         let rows = (0..self.height)
             .filter(|i| (0..self.width).all(|j| !self.galaxies.contains(&(*i, j))))
@@ -33,10 +38,10 @@ impl Universe {
             .collect::<Vec<_>>();
 
         for i in rows {
-            self.height += 1;
+            self.height += scaling_factor;
             for galaxy in self.galaxies.iter_mut() {
                 if galaxy.0 > i {
-                    galaxy.0 += 1;
+                    galaxy.0 += scaling_factor;
                 }
             }
         }
@@ -47,10 +52,10 @@ impl Universe {
             .collect::<Vec<_>>();
 
         for j in columns {
-            self.width += 1;
+            self.width += scaling_factor;
             for galaxy in self.galaxies.iter_mut() {
                 if galaxy.1 > j {
-                    galaxy.1 += 1;
+                    galaxy.1 += scaling_factor;
                 }
             }
         }
