@@ -37,6 +37,11 @@ impl Universe {
             .rev()
             .collect::<Vec<_>>();
 
+        let columns = (0..self.width)
+            .filter(|j| (0..self.height).all(|i| !self.galaxies.contains(&(i, *j))))
+            .rev()
+            .collect::<Vec<_>>();
+
         for i in rows {
             self.height += scaling_factor;
             for galaxy in self.galaxies.iter_mut() {
@@ -45,11 +50,6 @@ impl Universe {
                 }
             }
         }
-
-        let columns = (0..self.width)
-            .filter(|j| (0..self.height).all(|i| !self.galaxies.contains(&(i, *j))))
-            .rev()
-            .collect::<Vec<_>>();
 
         for j in columns {
             self.width += scaling_factor;
