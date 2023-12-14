@@ -10,18 +10,27 @@ fn find_mirror_line(pattern: &str) -> usize {
 
     let height = rows.len();
 
-    // Scan for horizontal reflections
+    // Scan for horizontal reflections with one difference
     for i in 1..height {
         let above = &rows[0..i];
         let below = &rows[i..height];
 
-        let mut zipped = above.iter().rev().zip(below);
-        if zipped.all(|(a, b)| a == b) {
+        let zipped = above.iter().rev().zip(below);
+        if zipped
+            .map(|(a, b)| {
+                a.chars()
+                    .zip(b.chars())
+                    .filter(|(a_c, b_c)| a_c != b_c)
+                    .count()
+            })
+            .sum::<usize>()
+            == 1
+        {
             return 100 * i;
         }
     }
 
-    // Scan for vertical reflections
+    // Scan for vertical reflections with one difference
     let columns: Vec<String> = (0..rows[0].len())
         .map(|i| {
             rows.iter()
@@ -36,8 +45,17 @@ fn find_mirror_line(pattern: &str) -> usize {
         let left = &columns[0..i];
         let right = &columns[i..width];
 
-        let mut zipped = left.iter().rev().zip(right);
-        if zipped.all(|(a, b)| a == b) {
+        let zipped = left.iter().rev().zip(right);
+        if zipped
+            .map(|(a, b)| {
+                a.chars()
+                    .zip(b.chars())
+                    .filter(|(a_c, b_c)| a_c != b_c)
+                    .count()
+            })
+            .sum::<usize>()
+            == 1
+        {
             return i;
         }
     }
